@@ -1,0 +1,124 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Bảng roles 
+model Role {
+  role_id   Int        @id @default(autoincrement())
+  name      String     @unique
+  userRoles UserRole[]
+
+  @@map("roles")
+}
+
+// Bảng Users
+model User {
+  id        Int        @id @default(autoincrement())
+  email     String     @unique
+  password  String
+  firstName String     @map("first_name")
+  lastName  String     @map("last_name")
+  height    Decimal?   @db.Decimal(5, 2)
+  weight    Decimal?   @db.Decimal(5, 2)
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+  isActive  Boolean    @default(true) @map("is_active")
+  userRoles UserRole[]
+
+  @@map("users")
+}
+
+model UserRole {
+  user_id Int
+  role_id Int
+  user    User @relation(fields: [user_id], references: [id])
+  role    Role @relation(fields: [role_id], references: [role_id])
+
+  @@id([user_id, role_id])
+  @@map("user_roles")
+}
+
+model Category {
+  id                 Int                 @id @default(autoincrement())
+  name               String              @unique
+  slug               String              @unique
+  imageUrl           String              @map("image_url")
+  parentId           Int?                @map("parent_id")
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+  isActive           Boolean             @default(true) @map("is_active")
+  parent             Category?           @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  subCategory        Category[]          @relation("CategoryHierarchy")
+  categoryAttributes CategoryAttribute[]
+
+  @@map("categories")
+}
+
+model CategoryAttribute {
+  id           Int     @id @default(autoincrement())
+  categoryId   Int     @map("category_id")
+  attributeId  Int     @map("attribute_id")
+  isRequired   Boolean @default(false) @map("is_required")
+  isFilterable Boolean @default(true) @map("is_filterable")
+
+  category  Category?  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  attribute Attribute? @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+
+  @@map("category_attributes")
+}
+
+model Attribute {
+  id                 Int                 @id @default(autoincrement())
+  name               String              @unique
+  isActive           Boolean             @default(true) @map("is_active")
+  attributeValues    AttributeValue[]
+  categoryAttributes CategoryAttribute[]
+
+  @@map("attributes")
+}
+
+model AttributeValue {
+  id           Int           @id @default(autoincrement())
+  attributeId  Int           @map("attribute_id")
+  value        String
+  description  String?
+  isActive     Boolean       @default(true) @map("is_active")
+  attribute    Attribute     @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+  productSpecs ProductSpec[]
+
+  @@map("attribute_values")
+}
+
+model Product {
+  id          Int           @id @default(autoincrement())
+  name        String        @unique
+  slug        String        @unique
+  description String?       @db.Text
+  basePrice   Decimal?      @map("base_price") @db.Decimal(10, 2)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  isActive    Boolean       @default(true) @map("is_active")
+  specs       ProductSpec[]
+
+  @@map("products")
+}
+
+model ProductSpec {
+  id               Int            @id @default(autoincrement())
+  product          Product?       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId        Int            @map("product_id")
+  attributeValueId Int            @map("attribute_value_id")
+  attributeValue   AttributeValue @relation(fields: [attributeValueId], references: [id], onDelete: Cascade)
+
+  @@map("product_specs")
+}
